@@ -22,7 +22,6 @@ Ini adalah menu dari simple bot by cuki
 ▢ upswgc *[ ⓒ ]*
 ▢ brat
 ▢ bratvid
-▢ paptt *[ ⓒ ]*
 ▢ ig
 ▢ sticker - s
 ▢ readviewonce - rvo
