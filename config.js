@@ -3,6 +3,10 @@ import chalk from 'chalk'
 import { fileURLToPath } from 'url'
 
 global.prefix = ["."]
+global.cuki = {
+    api: "https://api.cuki.biz.id",
+    apiKey: "cuki-x"
+    }
 global.config = {
     owner: [
 ['6287858086256', 'Linz', true],
