@@ -9,16 +9,16 @@ global.cuki = {
     }
 global.config = {
     owner: [
-['6287858086256', 'Linz', true],
-        ['6285974900047', 'vella', true]
+['628xxx', 'Cuki', true], // isi nomor own dan nama nya
+        ['628xxx', 'Mayy', true]
     ],
-    pairingNumber: "6285974900047",
+    pairingNumber: "628xxx", // isi nomor bot
     pairingAuth: true,
     gris: '`',
-    watermark: 'Linz??',
+    watermark: 'cuki??',
     author: 'Halo kak',
     stickpack: 'Sticker by',
-    stickauth: 'Linzz'
+    stickauth: "cuki's api"
 }
 
 let file = fileURLToPath(import.meta.url)
