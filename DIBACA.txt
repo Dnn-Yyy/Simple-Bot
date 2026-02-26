@@ -1,0 +1,4 @@
+HALO USER, TERIMAKASIH TELAH MEMAKAI SCRIPT INI
+
+Creator : cuki digital
+NodeJs : v21
