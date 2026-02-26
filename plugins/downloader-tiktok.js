@@ -1,75 +1,96 @@
+
 import axios from "axios"
-let regex = /https:\/\/(www\.)?tiktok\.com\/(@[^\/]+\/(video|photo)\/\d+|\w+\/\d+|\w+)|https:\/\/(vt|vm)\.tiktok\.com\/\w+/i
 
-let handler = async (m, { conn, usedPrefix, command, text }) => {
-    try {
-        if (!text) return m.reply(`🎥 *Masukkan link TikTok!*\n\nContoh:\n${usedPrefix + command} https://vt.tiktok.com/ZSFxYcCdr/`)
-        let isLink = text.match(regex)?.[0]
-        if (!isLink && !/tiktok-imgdl/i.test(command)) return m.reply("❌ *Itu bukan link TikTok!*")
-        await global.loading(m, conn)
+const API_BASE = global.cuki.api
+const KEY = global.cuki.apiKey
 
-        if (/tiktok-imgdl/i.test(command)) {
-            return await conn.sendFile(m.chat, text, "", "", m)
-        }
+let handler = async (m, { conn, args, usedPrefix, command }) => {
+  const url = (args[0] || "").trim()
 
-        let { data } = await tiktok(isLink)
-        if (!data) return m.reply("❌ *Gagal mengambil data dari TikTok!*\nCoba link lain atau cek apakah link valid.")
+  if (!url) {
+    return m.reply(
+      `Format salah.\nContoh:\n${usedPrefix + command} https://vt.tiktok.com/xxxx/`
+    )
+  }
+  
+  try {
+    await m.react("🕐")
+  } catch {}
 
-        if (data.images?.length) {
-            if (data.images.length > 1) {
-                let list = data.images.map((v, i) => [`${usedPrefix}tiktok-imgdl ${v}`, (i + 1).toString(), (i + 1).toString()])
-                await conn.textList(
-                    m.chat,
-                    `📸 *Terdapat ${data.images.length} Foto Slide*\nSilakan pilih salah satu untuk didownload!`,
-                    data.images[0],
-                    list,
-                    m,
-                    { noList: true }
-                )
-            } else {
-                await conn.sendFile(m.chat, data.images[0], "", "", m)
-            }
-        } else if (data.play) {
-            let download = await conn.getFile(data.play)
-            let caption = `👤 *Nickname*: ${data.author?.nickname || "Tidak tersedia"}\n⏱️ *Durasi*: ${data.duration || "-"} detik\n\n📝 *Caption*: ${data.title || "-"}`.trim()
+  try {
+    const endpoint =
+      `${API_BASE}/api/downloader/tiktok` +
+      `?apikey=${encodeURIComponent(global?.config?.apikey || "cuki-x")}` +
+      `&url=${encodeURIComponent(url)}`
 
-            let buttons = [
-                {
-                    buttonId: `.ttmusic ${isLink}`,
-                    buttonText: { displayText: "ᴀᴍʙɪʟ ᴀᴜᴅɪᴏ" },
-                    type: 1
-                }
-            ]
+    const { data } = await axios.get(endpoint, {
+      timeout: 60_000,
+      validateStatus: () => true,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36",
+        Accept: "application/json",
+      },
+    })
 
-            await conn.sendMessage(
-                m.chat,
-                {
-                    video: download.data,
-                    caption,
-                    buttons,
-                    headerType: 4
-                },
-                { quoted: m }
-            )
-        } else {
-            return m.reply("❌ *Data video tidak ditemukan!* Mungkin formatnya tidak didukung.")
-        }
-    } catch (err) {
-        console.log(err)
-        m.reply(`❌ Error\nLogs error : ${err.message}`)
-    } finally {
-        await global.loading(m, conn, true)
+    if (!data || data.success !== true || !data.results) {
+      const msg =
+        data?.message ||
+        data?.error ||
+        `Gagal ambil data TikTok (status: ${data?.statusCode || "?"}).`
+      try {
+        await m.react("❌")
+      } catch {}
+      return m.reply(msg)
     }
+
+    const r = data.results
+    if (r.type !== "video" || !r.nowm) {
+      try {
+        await m.react("❌")
+      } catch {}
+      return m.reply("Hasil bukan video / link video tidak ditemukan.")
+    }
+
+    const author = r.author || {}
+    const musicInfo = r.music_info || {}
+    const stats = r.stats || {}
+
+    const caption =
+      `✅ TikTok Downloader\n` +
+      `• Username: @${author.unique_id || "-"}\n` +
+      `• Nickname: ${author.nickname || "-"}\n` +
+      `• Judul: ${r.title || "-"}\n` +
+      `• Durasi: ${typeof r.duration === "number" ? r.duration + "s" : "-"}\n` +
+      `• Music: ${musicInfo.title || "-"}\n` +
+      `• Views: ${stats.play_count ?? "-"} | Likes: ${stats.digg_count ?? "-"} | Comments: ${stats.comment_count ?? "-"} | Share: ${stats.share_count ?? "-"}\n` +
+      `\n` +
+      `Caption Asli:\n${r.caption || "-"}`
+
+    await conn.sendMessage(
+      m.chat,
+      {
+        video: { url: r.nowm },
+        caption,
+        fileName: `tiktok-${r.id || Date.now()}.mp4`,
+        mimetype: "video/mp4",
+      },
+      { quoted: m }
+    )
+
+    try {
+      await m.react("✅")
+    } catch {}
+  } catch (e) {
+    try {
+      await m.react("❌")
+    } catch {}
+    return m.reply(`Error: ${e?.message || e}`)
+  }
 }
 
-handler.help = ['tiktok-imgdl', 'tiktok', 'tiktokmp4', 'tiktokslide', 'tiktokfoto', 'tiktokvideo', 'ttmp4', 'ttslide', 'ttfoto', 'ttvideo']
+handler.help = ["tt <url tiktok>"]
 handler.tags = ["downloader"]
-handler.command = /^(tiktok-imgdl|tiktok(mp4|slide|foto|video)?|tt(mp4|slide|foto|video)?)$/i
-handler.limit = true
-handler.onlyprem = true
-export default handler
+handler.command = /^tt$/i
 
-async function tiktok(url) {
-    let res = await axios.post("https://www.tikwm.com/api", {}, { params: { url, hd: 1 } })
-    return res.data
-}
+export default handler
