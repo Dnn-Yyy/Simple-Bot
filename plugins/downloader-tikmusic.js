@@ -1,44 +1,124 @@
-/*
+import axios from "axios"
 
-# Fitur : TikTok Music Downloader
-# Type : Plugins ESM
-# Created by : https://whatsapp.com/channel/0029Vb2qri6JkK72MIrI8F1Z
-# Api : https://www.sankavolereii.my.id
+const API_BASE = global.cuki.api
+const KEY = global.cuki.apiKey
 
-   ⚠️ _Note_ ⚠️
-jangan hapus wm ini banggg
+let handler = async (m, { conn, args, usedPrefix, command }) => {
+  const url = (args[0] || "").trim()
 
-*/
+  if (!url) {
+    return m.reply(
+      `Format salah.\nContoh:\n${usedPrefix + command} https://vt.tiktok.com/xxxx/`
+    )
+  }
 
-let handler = async (m, { conn, text }) => {
   try {
-    if (!text) return m.reply('❌ Masukkan URL TikTok-nya!\nContoh: .ttmusic https://vt.tiktok.com/ZSFxYcCdr/')
-
-    await conn.sendMessage(m.chat, { react: { text: "🕒", key: m.key } })
-
-    const apiKey = global.api.sankaKey
-    const url = `${global.api.sanka}/download/tiktok?apikey=${apiKey}&url=${encodeURIComponent(text)}`
-    let res = await fetch(url)
-    let json = await res.json()
-
-    if (!json.status) return m.reply('❌ Gagal mengambil data audio TikTok.')
-
-    let audio = json.result.music
-    let title = json.result.music_info?.title || 'tiktok-audio'
-
     await conn.sendMessage(m.chat, {
-      audio: { url: audio },
-      mimetype: 'audio/mpeg',
-      fileName: `${title}.mp3`
-    }, { quoted: m })
+      react: {
+        text: "🕐",
+        key: m.key
+      }
+    })
+  } catch {}
+
+  try {
+    const endpoint =
+      `${API_BASE}/api/downloader/tiktok` +
+      `?apikey=${encodeURIComponent(global?.config?.apikey || "cuki-x")}` +
+      `&url=${encodeURIComponent(url)}`
+
+    const { data } = await axios.get(endpoint, {
+      timeout: 60000,
+      validateStatus: () => true,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36",
+        Accept: "application/json",
+      },
+    })
+
+    if (!data || data.success !== true || !data.results) {
+      const msg =
+        data?.message ||
+        data?.error ||
+        `Gagal ambil data TikTok (status: ${data?.statusCode || "?"}).`
+
+      try {
+        await conn.sendMessage(m.chat, {
+          react: {
+            text: "❌",
+            key: m.key
+          }
+        })
+      } catch {}
+
+      return m.reply(msg)
+    }
+
+    const r = data.results
+    if (r.type !== "video" || !r.nowm) {
+      try {
+        await conn.sendMessage(m.chat, {
+          react: {
+            text: "❌",
+            key: m.key
+          }
+        })
+      } catch {}
+
+      return m.reply("Hasil bukan video / link video tidak ditemukan.")
+    }
+
+    const author = r.author || {}
+    const musicInfo = r.music_info || {}
+    const stats = r.stats || {}
+
+    const caption =
+      `✅ TikTok Downloader\n` +
+      `• Username: @${author.unique_id || "-"}\n` +
+      `• Nickname: ${author.nickname || "-"}\n` +
+      `• Judul: ${r.title || "-"}\n` +
+      `• Durasi: ${typeof r.duration === "number" ? r.duration + "s" : "-"}\n` +
+      `• Music: ${musicInfo.title || "-"}\n` +
+      `• Views: ${stats.play_count ?? "-"} | Likes: ${stats.digg_count ?? "-"} | Comments: ${stats.comment_count ?? "-"} | Share: ${stats.share_count ?? "-"}\n\n` +
+      `Caption Asli:\n${r.caption || "-"}`
+
+    await conn.sendMessage(
+      m.chat,
+      {
+        video: { url: r.nowm },
+        caption,
+        fileName: `tiktok-${r.id || Date.now()}.mp4`,
+        mimetype: "video/mp4",
+      },
+      { quoted: m }
+    )
+
+    try {
+      await conn.sendMessage(m.chat, {
+        react: {
+          text: "✅",
+          key: m.key
+        }
+      })
+    } catch {}
+
   } catch (e) {
-    console.error(e)
-    throw `❌ Error\nLogs error : ${e}`
+    try {
+      await conn.sendMessage(m.chat, {
+        react: {
+          text: "❌",
+          key: m.key
+        }
+      })
+    } catch {}
+
+    return m.reply(`Error: ${e?.message || e}`)
   }
 }
 
-handler.command = ['ttmusic', 'tiktokmusic']
-handler.help = ['ttmusic <url>']
-handler.tags = ['downloader']
+handler.help = ["tt <url tiktok>"]
+handler.tags = ["downloader"]
+handler.command = /^tt$/i
 
 export default handler
