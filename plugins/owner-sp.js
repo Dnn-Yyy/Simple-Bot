@@ -13,17 +13,12 @@ Contoh: ${usedPrefix}sp owner
 
     if (!m.quoted) throw `Reply kodenya dulu.`
 
-    // cek command save plugin
     if (/p(lugin)?/i.test(command)) {
-        // folder tujuan
         const folder = path.join(process.cwd(), 'plugins')
-        // bikin folder kalau belum ada
         if (!fs.existsSync(folder)) await _fs.mkdir(folder, { recursive: true })
 
-        // nama file otomatis .js
         let filename = text.replace(/plugin(s)?\//i, '').replace(/\.js$/i, '') + '.js'
 
-        // validasi syntax dulu
         const error = syntaxError(m.quoted.text, filename, {
             sourceType: 'module',
             allowReturnOutsideFunction: true,
@@ -31,10 +26,8 @@ Contoh: ${usedPrefix}sp owner
         })
         if (error) throw error
 
-        // path file
         const pathFile = path.join(folder, filename)
 
-        // tulis file (overwrite langsung)
         await _fs.writeFile(pathFile, m.quoted.text)
 
         m.reply(`
@@ -47,7 +40,6 @@ ${util.format(m.quoted.text)}
 `.trim())
 
     } else {
-        // selain plugin
         const isJavascript = m.quoted.text && !m.quoted.mediaMessage && /\.js$/i.test(text)
 
         if (isJavascript) {
