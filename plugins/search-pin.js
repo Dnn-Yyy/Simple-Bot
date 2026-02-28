@@ -1,5 +1,3 @@
-Sip. Ini versi @whiskeysockets/baileys (ESM) buat Pinterest carousel album message, pakai global.cuki.api + global.cuki.apiKey, react jam via conn.sendMessage, limit max 10.
-
 import axios from "axios"
 import pkg from "@whiskeysockets/baileys"
 
